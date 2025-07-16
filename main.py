@@ -4,7 +4,7 @@ from src.score_model import compute_score
 import json
 
 if __name__ == "__main__":
-    with open('data/user_transactions.json') as f:
+    with open('data/user-wallet-transactions.json') as f:
         raw_data = json.load(f)
 
     features_df = build_features(raw_data)

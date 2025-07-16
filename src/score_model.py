@@ -19,16 +19,3 @@ def compute_score(df):
     return df[['wallet', 'score']]
 
 
-# main.py
-import json
-from src.feature_engineering import build_features
-from src.score_model import compute_score
-
-if __name__ == "__main__":
-    with open("data/user_transactions.json", "r") as f:
-        transactions = json.load(f)
-
-    features_df = build_features(transactions)
-    scored_df = compute_score(features_df)
-    scored_df.to_csv("wallet_scores.csv", index=False)
-    print("Scoring complete. Output saved to wallet_scores.csv")
