@@ -3,33 +3,55 @@
 import pandas as pd
 import numpy as np
 import joblib
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 
+# Load engineered features
+features_df = pd.read_csv("data/engineered_features_with_scores.csv")
 
-# Load aggregated features with pseudo-labels (score from your current logic)
-features_df = pd.read_csv("data/engineered_features_with_scores.csv")  # make sure this exists
-
-# Split features and target
+# Split into features and labels
 X = features_df.drop(columns=['wallet', 'score'])
 y = features_df['score']
 
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Initialize and train model
-model = RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)
-model.fit(X_train, y_train)
+# Define parameter grid
+param_grid = {
+    'n_estimators': [100, 200],
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.03, 0.1],
+    'subsample': [0.7, 0.8],
+    'colsample_bytree': [0.7, 0.8]
+}
+
+# Setup grid search
+grid_search = GridSearchCV(
+    estimator=XGBRegressor(random_state=42),
+    param_grid=param_grid,
+    cv=3,
+    scoring='neg_root_mean_squared_error',
+    verbose=1,
+    n_jobs=-1
+)
+
+# Train
+grid_search.fit(X_train, y_train)
+
+# Best model
+best_model = grid_search.best_estimator_
+print("Best Hyperparameters:", grid_search.best_params_)
 
 # Evaluate
-y_pred = model.predict(X_test)
+y_pred = best_model.predict(X_test)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 print("RMSE:", rmse)
 print("R2 Score:", r2_score(y_test, y_pred))
 
-# Save model
-joblib.dump(model, "models/credit_scoring_model.pkl")
+# Save best model
+joblib.dump(best_model, "models/credit_scoring_model.pkl")
 print("Model saved to models/credit_scoring_model.pkl")
+
 
 
