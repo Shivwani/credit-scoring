@@ -1,71 +1,63 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+import numpy as np
 
-# Load scores
-df = pd.read_csv("wallet_scores.csv")
+# Load the data
+df = pd.read_csv("data/engineered_features_with_scores.csv")
 
-# Bucket scores into ranges
-df['score_range'] = pd.cut(df['score'], bins=[0,100,200,300,400,500,600,700,800,900,1000])
-score_distribution = df['score_range'].value_counts().sort_index()
+# --- Score distribution buckets ---
+bins = list(range(0, 1100, 100))
+df['score_bucket'] = pd.cut(df['score'], bins=bins)
+distribution = df['score_bucket'].value_counts().sort_index()
 
-# Save histogram plot
-plt.figure(figsize=(10, 5))
-score_distribution.plot(kind='bar', edgecolor='black', color='skyblue')
-plt.title("Wallet Score Distribution")
+# --- Plotting ---
+plt.figure(figsize=(10, 6))
+distribution.plot(kind='bar', color='skyblue')
 plt.xlabel("Score Range")
 plt.ylabel("Number of Wallets")
+plt.title("Wallet Credit Score Distribution")
 plt.xticks(rotation=45)
 plt.tight_layout()
 plt.savefig("score_distribution.png")
 plt.close()
 
-# Analyze behavior (mock observations based on score patterns)
-top_wallets = df.sort_values(by="score", ascending=False).head(5)
-bottom_wallets = df.sort_values(by="score").head(5)
+# --- Top 5 Wallets ---
+top_wallets = df.sort_values(by='score', ascending=False).head(5)[
+    ['wallet', 'deposit_count', 'borrow_count', 'repay_count', 'liquidation_count',
+     'borrow_usd', 'repay_usd', 'repay_ratio', 'asset_diversity', 'activity_span_days', 'score']
+]
 
-# Generate markdown content
-lines = []
+# --- Bottom 5 Wallets ---
+bottom_wallets = df.sort_values(by='score').head(5)[
+    ['wallet', 'deposit_count', 'borrow_count', 'repay_count', 'liquidation_count',
+     'borrow_usd', 'repay_usd', 'repay_ratio', 'asset_diversity', 'activity_span_days', 'score']
+]
 
-lines.append("# Credit Score Analysis Report\n")
-lines.append("## Score Distribution\n")
-lines.append("| Score Range | Wallet Count |")
-lines.append("|-------------|---------------|")
+# --- Write analysis.md ---
+with open("analysis.md", "w", encoding="utf-8") as f:
+    f.write("# 📊 Credit Score Analysis Report\n\n")
 
-for range_val, count in score_distribution.items():
-    lines.append(f"| {str(range_val)} | {count} |")
+    f.write("## Score Distribution\n\n")
+    f.write("| Score Range | Wallet Count |\n")
+    f.write("|-------------|---------------|\n")
+    for bucket, count in distribution.items():
+        f.write(f"| {bucket} | {count} |\n")
 
-lines.append("\n![Score Distribution](score_distribution.png)\n")
+    f.write("\n![Score Distribution](score_distribution.png)\n\n")
 
-lines.append("## Behavior of Low-Scoring Wallets (0–300)\n")
-lines.append("- Frequent borrow actions with little or no repayment")
-lines.append("- Liquidation events are common")
-lines.append("- Limited asset diversity (often 1–2 assets)")
-lines.append("- May be bots or one-time exploitative interactions")
-lines.append("- Inactive or abrupt transaction history\n")
+    f.write("## 🥇 Top 5 Wallets (High Scores)\n\n")
+    f.write("These wallets demonstrate consistent and responsible behavior based on features like repay ratio, asset diversity, and minimal liquidations.\n\n")
+    f.write(top_wallets.to_markdown(index=False))
+    f.write("\n\n")
 
-lines.append("## Behavior of High-Scoring Wallets (700–1000)\n")
-lines.append("- High repay-to-borrow ratios")
-lines.append("- Active participation in both deposits and repayments")
-lines.append("- Low or zero liquidation events")
-lines.append("- Longer activity spans with diverse assets")
-lines.append("- Consistent and responsible on-chain behavior\n")
+    f.write("## 🚨 Bottom 5 Wallets (Low Scores)\n\n")
+    f.write("These wallets are flagged for risky behavior like high liquidation rates, poor repay history, or abrupt activity.\n\n")
+    f.write(bottom_wallets.to_markdown(index=False))
+    f.write("\n\n")
 
-lines.append("## Summary Observations\n")
-lines.append("- The scoring system effectively distinguishes responsible vs. risky wallets")
-lines.append("- Behavior aligns with intuitive financial trustworthiness")
-lines.append("- Could be enhanced further by integrating ML models or multiple protocols\n")
+    f.write("## Summary Observations\n\n")
+    f.write("- The scoring model captures a clear behavioral signal.\n")
+    f.write("- Low scoring wallets tend to lack repayment behavior or face frequent liquidations.\n")
+    f.write("- High scoring wallets show long-term participation and diversified usage.\n")
 
-lines.append("## Example Top 5 Wallets\n")
-for wallet in top_wallets['wallet'].tolist():
-    lines.append(f"- {wallet}")
-
-lines.append("\n## Example Bottom 5 Wallets\n")
-for wallet in bottom_wallets['wallet'].tolist():
-    lines.append(f"- {wallet}")
-
-# Write to file
-with open("analysis.md", "w") as f:
-    f.write("\n".join(lines))
-
-print("analysis.md and score_distribution.png have been generated.")
+print("✅ analysis.md and score_distribution.png generated.")
