@@ -2,52 +2,39 @@ import pandas as pd
 from collections import defaultdict
 from datetime import datetime
 
-def build_features(transactions):
-    wallet_data = defaultdict(list)
-    
-    for tx in transactions:
-        wallet = tx['userWallet']
-        action = tx['action'].lower()
-        timestamp = tx['timestamp']
-        action_data = tx.get('actionData', {})
+def build_features(raw_data):
+    df = pd.DataFrame(raw_data)
 
-        try:
-            amount = float(action_data.get('amount', 0)) / 1e18  # assuming 18 decimals
-            asset = action_data.get('assetSymbol', 'UNKNOWN')
-        except:
-            amount = 0
-            asset = 'UNKNOWN'
+    df['wallet'] = df['userWallet']
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+    df['action_type'] = df['action'].str.lower()
 
-        wallet_data[wallet].append({
-            'action': action,
-            'timestamp': timestamp,
-            'amount': amount,
-            'asset': asset
-        })
+    # Group by wallet
+    grouped = df.groupby('wallet')
 
-    feature_rows = []
+    features = pd.DataFrame()
+    features['deposit_count'] = grouped.apply(lambda x: (x['action_type'] == 'deposit').sum())
+    features['borrow_count'] = grouped.apply(lambda x: (x['action_type'] == 'borrow').sum())
+    features['repay_count'] = grouped.apply(lambda x: (x['action_type'] == 'repay').sum())
+    features['liquidation_count'] = grouped.apply(lambda x: (x['action_type'] == 'liquidationcall').sum())
 
-    for wallet, txs in wallet_data.items():
-        df = pd.DataFrame(txs)
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+    # Total borrowed and repaid
+    def sum_usd(action_type, x):
+        mask = x['action_type'] == action_type
+        amounts = x.loc[mask, 'actionData'].apply(lambda a: float(a.get('amount', 0)) * float(a.get('assetPriceUSD', 1)))
+        return amounts.sum()
 
-        features = {
-            'wallet': wallet,
-            'total_tx_count': len(df),
-            'unique_assets': df['asset'].nunique(),
-            'active_days': (df['timestamp'].max() - df['timestamp'].min()).days + 1,
-            'deposit_total': df[df['action'] == 'deposit']['amount'].sum(),
-            'borrow_total': df[df['action'] == 'borrow']['amount'].sum(),
-            'repay_total': df[df['action'] == 'repay']['amount'].sum(),
-            'redeem_total': df[df['action'] == 'redeemunderlying']['amount'].sum(),
-            'liquidation_count': (df['action'] == 'liquidationcall').sum(),
-        }
+    features['borrow_usd'] = grouped.apply(lambda x: sum_usd('borrow', x))
+    features['repay_usd'] = grouped.apply(lambda x: sum_usd('repay', x))
 
-        # Derived metrics
-        features['repay_ratio'] = features['repay_total'] / features['borrow_total'] if features['borrow_total'] > 0 else 0
-        features['borrow_deposit_ratio'] = features['borrow_total'] / features['deposit_total'] if features['deposit_total'] > 0 else 0
-        features['tx_per_day'] = features['total_tx_count'] / features['active_days']
+    # Repay ratio
+    features['repay_ratio'] = features['repay_usd'] / (features['borrow_usd'] + 1e-6)
 
-        feature_rows.append(features)
+    # Asset diversity
+    features['asset_diversity'] = grouped['actionData'].apply(lambda x: x.apply(lambda a: a.get('assetSymbol')).nunique())
 
-    return pd.DataFrame(feature_rows)
+    # Activity span (days between first and last tx)
+    features['activity_span_days'] = grouped['timestamp'].apply(lambda x: (x.max() - x.min()).days + 1)
+
+    features.reset_index(inplace=True)
+    return features
