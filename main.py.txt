@@ -1,0 +1,12 @@
+# Example skeleton
+from src.feature_engineering import build_features
+from src.score_model import compute_score
+import json
+
+if __name__ == "__main__":
+    with open('data/user_transactions.json') as f:
+        raw_data = json.load(f)
+
+    features_df = build_features(raw_data)
+    scored_df = compute_score(features_df)
+    scored_df.to_csv("wallet_scores.csv", index=False)

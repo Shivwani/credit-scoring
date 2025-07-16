@@ -1,0 +1,34 @@
+import pandas as pd
+
+def compute_score(df):
+    df = df.copy()
+
+    # Normalize features to [0, 1] for scoring
+    def norm(col):
+        return (col - col.min()) / (col.max() - col.min() + 1e-9)
+
+    df['score'] = (
+        norm(df['repay_ratio']) * 0.3 +
+        (1 - norm(df['liquidation_count'])) * 0.2 +
+        (1 - norm(df['borrow_deposit_ratio'])) * 0.2 +
+        norm(df['tx_per_day']) * 0.15 +
+        norm(df['unique_assets']) * 0.15
+    ) * 1000
+
+    df['score'] = df['score'].clip(0, 1000)
+    return df[['wallet', 'score']]
+
+
+# main.py
+import json
+from src.feature_engineering import build_features
+from src.score_model import compute_score
+
+if __name__ == "__main__":
+    with open("data/user_transactions.json", "r") as f:
+        transactions = json.load(f)
+
+    features_df = build_features(transactions)
+    scored_df = compute_score(features_df)
+    scored_df.to_csv("wallet_scores.csv", index=False)
+    print("Scoring complete. Output saved to wallet_scores.csv")
