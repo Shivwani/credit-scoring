@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # --- Load data ---
-data_path = "data/engineered_features_with_scores.csv"
+data_path = "wallet_scores.csv"
 if not os.path.exists(data_path):
     raise FileNotFoundError(f"File not found: {data_path}")
 df = pd.read_csv(data_path)
