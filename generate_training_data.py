@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     features_df = build_features(raw_data)
 
-    # Apply your current rule-based scoring logic
+    # Applying current rule-based scoring logic
     features_df["credit_score"] = features_df.apply(compute_heuristic_score, axis=1)
 
     # Save for model training
