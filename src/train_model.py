@@ -6,13 +6,14 @@ import joblib
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
 
 # Load engineered features
 features_df = pd.read_csv("data/engineered_features_with_scores.csv")
 
-# Split into features and labels
-X = features_df.drop(columns=['wallet', 'score'])
-y = features_df['score']
+# Drop wallet_address (identifier) and separate features and labels
+X = features_df.drop(columns=['wallet_address', 'credit_score'])
+y = features_df['credit_score']
 
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -52,6 +53,3 @@ print("R2 Score:", r2_score(y_test, y_pred))
 # Save best model
 joblib.dump(best_model, "models/credit_scoring_model.pkl")
 print("Model saved to models/credit_scoring_model.pkl")
-
-
-

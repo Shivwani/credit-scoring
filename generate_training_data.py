@@ -1,7 +1,7 @@
 # generate_training_data.py
 
 from src.feature_engineering import build_features
-from src.heuristic_score import compute_heuristic_score  # We'll create this
+from src.score_model import compute_heuristic_score  
 import json
 import pandas as pd
 
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     features_df = build_features(raw_data)
 
     # Apply your current rule-based scoring logic
-    features_df = compute_heuristic_score(features_df)
+    features_df["credit_score"] = features_df.apply(compute_heuristic_score, axis=1)
 
     # Save for model training
     features_df.to_csv("data/engineered_features_with_scores.csv", index=False)

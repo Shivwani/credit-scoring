@@ -1,40 +1,92 @@
 import pandas as pd
 from collections import defaultdict
-from datetime import datetime
 
-def build_features(raw_data):
-    df = pd.DataFrame(raw_data)
+DECIMALS = {
+    "USDC": 6,
+    "USDT": 6,
+    "DAI": 18,
+    "WMATIC": 18,
+    "ETH": 18,
+}
 
-    df['wallet'] = df['userWallet']
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
-    df['action_type'] = df['action'].str.lower()
+STABLECOINS = {"USDC", "USDT", "DAI"}
 
-    # Group by wallet
-    grouped = df.groupby('wallet')
+def normalize_amount(symbol, raw_amount):
+    decimals = DECIMALS.get(symbol.upper(), 18)
+    return raw_amount / (10 ** decimals)
 
-    features = pd.DataFrame()
-    features['deposit_count'] = grouped.apply(lambda x: (x['action_type'] == 'deposit').sum())
-    features['borrow_count'] = grouped.apply(lambda x: (x['action_type'] == 'borrow').sum())
-    features['repay_count'] = grouped.apply(lambda x: (x['action_type'] == 'repay').sum())
-    features['liquidation_count'] = grouped.apply(lambda x: (x['action_type'] == 'liquidationcall').sum())
+def build_features(data):
+    wallets = defaultdict(list)
 
-    # Total borrowed and repaid
-    def sum_usd(action_type, x):
-        mask = x['action_type'] == action_type
-        amounts = x.loc[mask, 'actionData'].apply(lambda a: float(a.get('amount', 0)) * float(a.get('assetPriceUSD', 1)))
-        return amounts.sum()
+    # Group transactions by wallet address
+    for tx in data:
+        address = tx.get("userWallet") or tx.get("actionData", {}).get("userId")
+        if address:
+            wallets[address].append(tx)
 
-    features['borrow_usd'] = grouped.apply(lambda x: sum_usd('borrow', x))
-    features['repay_usd'] = grouped.apply(lambda x: sum_usd('repay', x))
+    wallet_features = []
 
-    # Repay ratio
-    features['repay_ratio'] = features['repay_usd'] / (features['borrow_usd'] + 1e-6)
+    for address, txs in wallets.items():
+        tx_count = len(txs)
+        total_volume = 0
+        stablecoin_volume = 0
+        asset_symbols = set()
 
-    # Asset diversity
-    features['asset_diversity'] = grouped['actionData'].apply(lambda x: x.apply(lambda a: a.get('assetSymbol')).nunique())
+        # Action counters
+        borrow_count = 0
+        repay_count = 0
+        supply_count = 0
+        redeem_count = 0
+        liquidation_count = 0
 
-    # Activity span (days between first and last tx)
-    features['activity_span_days'] = grouped['timestamp'].apply(lambda x: (x.max() - x.min()).days + 1)
+        for tx in txs:
+            action_data = tx.get("actionData", {})
+            symbol = action_data.get("assetSymbol", "").upper()
+            asset_symbols.add(symbol)
 
-    features.reset_index(inplace=True)
-    return features
+            # Volume handling
+            try:
+                raw_amount = float(action_data.get("amount", 0))
+                amount = normalize_amount(symbol, raw_amount)
+            except Exception:
+                amount = 0
+
+            total_volume += amount
+
+            if symbol in STABLECOINS:
+                stablecoin_volume += amount
+
+            # Detect action types
+            action = tx.get("action", "").lower()
+            if action == "borrow":
+                borrow_count += 1
+            elif action == "repay":
+                repay_count += 1
+            elif action in ["supply", "deposit"]:
+                supply_count += 1
+            elif action == "redeemunderlying":
+                redeem_count += 1
+            elif action == "liquidationcall":
+                liquidation_count += 1
+
+        # Ratios
+        stablecoin_tx_ratio = stablecoin_volume / total_volume if total_volume > 0 else 0
+        borrow_ratio = borrow_count / tx_count if tx_count > 0 else 0
+        repay_ratio = repay_count / tx_count if tx_count > 0 else 0
+        supply_ratio = supply_count / tx_count if tx_count > 0 else 0
+        avg_tx_size = total_volume / tx_count if tx_count > 0 else 0
+
+
+        wallet_features.append({
+            "wallet_address": address,
+            "transaction_count": tx_count,
+            "total_volume_eth": total_volume,
+            "average_transaction_size": avg_tx_size,
+            "stablecoin_volume_ratio": stablecoin_tx_ratio,
+            "borrow_ratio": borrow_ratio,
+            "repay_ratio": repay_ratio,
+            "supply_ratio": supply_ratio,
+            "unique_tokens_transacted": len(asset_symbols),
+        })
+
+    return pd.DataFrame(wallet_features)
