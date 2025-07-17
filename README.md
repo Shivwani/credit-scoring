@@ -22,19 +22,18 @@ Your goal is to:
 credit-scoring/
 ├── data/
 │   ├── user-wallet-transactions.json
-│   └── engineered\_features\_with\_scores.csv
+│   └── engineered_features_with_scores.csv
 ├── models/
-│   └── credit\_scoring\_model.pkl
+│   └── credit_scoring_model.pkl
 ├── src/
-│   ├── feature\_engineering.py
-│   ├── heuristic\_score.py
-│   ├── score\_model.py
-│   ├── train\_model.py
-│   └── generate\_analysis.py
+│   ├── feature_engineering.py
+│   ├── score_model.py
+│   ├── train_model.py
 ├── main.py
-├── generate\_training\_data.py
+├── generate_training_data.py
+├── generate_analysis.py
 ├── analysis.md
-├── score\_distribution.png
+├── score_distribution.png
 ├── README.md
 └── requirements.txt
 
