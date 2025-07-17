@@ -1,3 +1,5 @@
+
+```markdown
 # 🏦 DeFi Wallet Credit Scoring System
 
 This project implements a machine learning-based credit scoring engine for wallets interacting with the Aave V2 protocol on the Polygon network. Given raw user transaction data in JSON format, the system assigns a **credit score between 0 and 1000** to each wallet, reflecting the wallet’s reliability and responsible DeFi usage.
@@ -17,23 +19,28 @@ Your goal is to:
 
 ## 🔧 Project Structure
 
+```
+
 credit-scoring/
 ├── data/
-│ └── user-wallet-transactions.json
-│ └── engineered_features_with_scores.csv
+│   ├── user-wallet-transactions.json
+│   └── engineered\_features\_with\_scores.csv
 ├── models/
-│ └── credit_scoring_model.pkl
+│   └── credit\_scoring\_model.pkl
 ├── src/
-│ ├── feature_engineering.py
-│ ├── heuristic_score.py
-│ ├── score_model.py
-│ └── train_model.py
+│   ├── feature\_engineering.py
+│   ├── heuristic\_score.py
+│   ├── score\_model.py
+│   ├── train\_model.py
+│   └── generate\_analysis.py
 ├── main.py
-├── generate_training_data.py
+├── generate\_training\_data.py
 ├── analysis.md
+├── score\_distribution.png
 ├── README.md
 └── requirements.txt
 
+````
 
 ---
 
@@ -55,7 +62,7 @@ credit-scoring/
 - A rule-based logic assigns an initial score to each wallet.
 - Score combines good actions (deposit/repay) and penalizes liquidations.
 
-📄 File: `src/heuristic_score.py`
+📄 File: `src/score_model.py`
 
 ---
 
@@ -77,22 +84,30 @@ credit-scoring/
 
 ---
 
-## 📈 Evaluation
+### 5. Score Analysis
+- Generates `analysis.md` with:
+  - Score distribution insights
+  - Summary statistics
+  - Top and bottom scoring wallets
+- Also saves a score distribution plot (`score_distribution.png`).
 
-- Final model: **XGBoost Regressor**
-- Metrics:
-  - **RMSE:** 21.65
-  - **R² Score:** 0.72
-- Indicates good predictive power for behavioral credit scoring.
+📄 File: `src/generate_analysis.py`
 
 ---
 
-## 📊 Score Analysis
+## 📈 Evaluation
 
-See [`analysis.md`](analysis.md) for:
-- Score distribution histogram
-- Behavioral patterns of high vs. low scoring wallets
-- Summary observations and top/bottom wallet examples
+- Final model: **XGBoost Regressor**
+- Best Hyperparameters:
+  - `n_estimators`: 200
+  - `max_depth`: 3
+  - `learning_rate`: 0.1
+  - `subsample`: 0.8
+  - `colsample_bytree`: 0.7
+- Metrics:
+  - **RMSE:** 4.26
+  - **R² Score:** 0.9995
+- Indicates excellent predictive power for behavioral credit scoring.
 
 ---
 
@@ -100,22 +115,54 @@ See [`analysis.md`](analysis.md) for:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/credit-scoring.git
+   git clone https://github.com/Shivwani/credit-scoring.git
    cd credit-scoring
+````
 
 2. Install dependencies:
-   
+
+   ```bash
    pip install -r requirements.txt
-   
+   ```
+
 3. Generate training data with heuristic scores:
-   
+
+   ```bash
    python generate_training_data.py
-   
+   ```
+
 4. Train the ML model:
-   
+
+   ```bash
    python src/train_model.py
+   ```
 
 5. Score wallets using:
-   
-   python main.py
 
+   ```bash
+   python main.py
+   ```
+
+6. Generate score analysis:
+
+   ```bash
+   python src/generate_analysis.py
+   ```
+
+---
+
+## 📊 Score Analysis
+
+See [`analysis.md`](analysis.md) for:
+
+* Score distribution histogram
+* Behavioral patterns of high vs. low scoring wallets
+* Summary observations and top/bottom wallet examples
+* Visual chart: `score_distribution.png`
+
+---
+
+```
+
+Let me know if you'd like to also update the `analysis.md` content or generate the `generate_analysis.py` file.
+```
