@@ -1,5 +1,4 @@
 
-```markdown
 # 🏦 DeFi Wallet Credit Scoring System
 
 This project implements a machine learning-based credit scoring engine for wallets interacting with the Aave V2 protocol on the Polygon network. Given raw user transaction data in JSON format, the system assigns a **credit score between 0 and 1000** to each wallet, reflecting the wallet’s reliability and responsible DeFi usage.
@@ -20,7 +19,6 @@ Your goal is to:
 ## 🔧 Project Structure
 
 ```
-
 credit-scoring/
 ├── data/
 │   ├── user-wallet-transactions.json
@@ -40,7 +38,7 @@ credit-scoring/
 ├── README.md
 └── requirements.txt
 
-````
+```
 
 ---
 
@@ -114,10 +112,10 @@ credit-scoring/
 ## ▶️ How to Run
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/Shivwani/credit-scoring.git
    cd credit-scoring
-````
 
 2. Install dependencies:
 
@@ -162,7 +160,4 @@ See [`analysis.md`](analysis.md) for:
 
 ---
 
-```
 
-Let me know if you'd like to also update the `analysis.md` content or generate the `generate_analysis.py` file.
-```
